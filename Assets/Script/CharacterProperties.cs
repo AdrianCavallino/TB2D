@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class CharacterProperties : MonoBehaviour
@@ -17,6 +18,12 @@ public class CharacterProperties : MonoBehaviour
     // Actions
     private bool _isGuarding;
 
+    public bool IsGuarding
+    {
+        get => _isGuarding;
+        set => _isGuarding = value;
+    }
+    
     public string CharacterName
     {
         get => characterName;
@@ -52,24 +59,7 @@ public class CharacterProperties : MonoBehaviour
         get => defense;
         set => defense = value;
     }
-
-    public IEnumerator CharacterAttack(CharacterProperties target)
-    {
-        // Damage Logic
-        bool isDead = target.TakeDamage(damage);
-
-        if (isDead)
-        {
-            
-        }
-        else
-        {
-            
-        }
-        
-        yield return new WaitForSeconds(3f);    
-    }
-
+    
     public IEnumerator CharacterGuard()
     {
         // Guard Logic
@@ -78,21 +68,29 @@ public class CharacterProperties : MonoBehaviour
         yield return new WaitForSeconds(3f);
     }
 
-    public bool TakeDamage(float inDamage)
+    public bool TakeDamage(int inDamage)
     {
-        float calcDamage = inDamage;
+        int calcDamage = inDamage;
+
         if (_isGuarding)
         {
-            calcDamage = inDamage - defense;
+            calcDamage -= defense;
+            if (calcDamage < 0)
+            {
+                calcDamage = 0;
+            }
         }
 
-        currentHealth -= Mathf.RoundToInt(calcDamage);
+        currentHealth -= calcDamage;
+
+        EventBus.Broadcast("GetHit");
 
         if (currentHealth <= 0)
         {
-            return true;
+            currentHealth = 0;
+            return true; // Character is dead
         }
 
-        return false;
+        return false; // Character is still alive
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,7 +54,7 @@ public class CustomBattleSystem : MonoBehaviour
         _enemyInfo = enemyObject.GetComponent<CharacterProperties>();
 
         dialogueText.text = "Encountered Angry " + _enemyInfo.CharacterName;
-
+        
         playerHUD.setHUD(_playerInfo);
         enemyHUD.setHUD(_enemyInfo);
         
@@ -78,14 +79,131 @@ public class CustomBattleSystem : MonoBehaviour
 
     public void OnAttack()
     {
-        if(_state != CombatState.PlayerTurn) return;
-
-        StartCoroutine(_playerInfo.CharacterAttack(_enemyInfo));
+        if (_state == CombatState.PlayerTurn)
+        {
+            StartCoroutine(PlayerAttack());
+        }
+        
+        actionButtons.SetActive(false);
     }
 
-    void EnemyTurn()
+    public void OnGuard()
     {
+        if (_state == CombatState.PlayerTurn)
+        {
+            StartCoroutine(PlayerGuard());
+        }
+    }
+
+    IEnumerator PlayerGuard()
+    {
+        _playerInfo.IsGuarding = true;
+        dialogueText.text = _playerInfo.CharacterName + " is guarding!";
+        actionButtons.SetActive(false);
+
+        yield return new WaitForSeconds(2f);
+
+        _state = CombatState.EnemyTurn;
+        StartCoroutine(EnemyTurn());
+    }
+
+    IEnumerator PlayerAttack()
+    {
+        _playerInfo.IsGuarding = false;
+        bool isDead = _enemyInfo.TakeDamage(_playerInfo.Damage);
+        
+        enemyHUD.SetHp(_enemyInfo.CurrentHealth);
+        dialogueText.text = (!_enemyInfo.IsGuarding) ? "DIRECT HIT INTO " + _enemyInfo.CharacterName : "Attack guarded by " + _enemyInfo.CharacterName;
+
+        yield return new WaitForSeconds(1f);
+
+        if (isDead)
+        {
+            _state = CombatState.Win;
+            EndBattle();
+        }
+        else
+        {
+            _state = CombatState.EnemyTurn;
+            StartCoroutine(EnemyTurn());
+        }
+        
+        yield return new WaitForSeconds(2f);
+    }
+
+    private void EndBattle()
+    {
+        if (_state == CombatState.Win)
+        {
+            actionButtons.SetActive(false);
+            dialogueText.text = "Victory is yours!";
+        } else if (_state == CombatState.Lose)
+        {
+            actionButtons.SetActive(false);
+            dialogueText.text = "Ugh, we'll get him next time";
+        }
+    }
+
+    IEnumerator EnemyTurn()
+    {
+        _enemyInfo.IsGuarding = false;
         actionButtons.SetActive(false);
         dialogueText.text = "Enemy Action";
+
+        yield return new WaitForSeconds(1f);
+
+        float randomValue = UnityEngine.Random.value;
+
+        if (_enemyInfo.CurrentHealth > _enemyInfo.MaxHealth * 0.4f)
+        {
+            if (randomValue <= 0.7f)
+            {
+                // Enemy attacks
+                dialogueText.text = _enemyInfo.CharacterName + " attacks!";
+                bool isDead = _playerInfo.TakeDamage(_enemyInfo.Damage);
+                playerHUD.SetHp(_playerInfo.CurrentHealth);
+
+                if (isDead)
+                {
+                    _state = CombatState.Lose;
+                    EndBattle();
+                    yield break;
+                }
+            }
+            else
+            {
+                // Enemy blocks
+                dialogueText.text = _enemyInfo.CharacterName + " is guarding!";
+                _enemyInfo.IsGuarding = true;
+            }
+        }
+        else
+        {
+            if (randomValue <= 0.3f)
+            {
+                // Enemy attacks
+                dialogueText.text = _enemyInfo.CharacterName + " attacks!";
+                bool isDead = _playerInfo.TakeDamage(_enemyInfo.Damage);
+                playerHUD.SetHp(_playerInfo.CurrentHealth);
+
+                if (isDead)
+                {
+                    _state = CombatState.Lose;
+                    EndBattle();
+                    yield break;
+                }
+            }
+            else
+            {
+                // Enemy blocks
+                dialogueText.text = _enemyInfo.CharacterName + " is guarding!";
+                _enemyInfo.IsGuarding = true;
+            }
+        }
+
+        yield return new WaitForSeconds(1f);
+
+        _state = CombatState.PlayerTurn;
+        PlayerTurn();
     }
 }

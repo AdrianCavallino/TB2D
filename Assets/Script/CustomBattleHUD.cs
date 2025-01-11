@@ -18,7 +18,7 @@ public class CustomBattleHUD : MonoBehaviour
         defenseText.text = charProps.Defense.ToString();
     }
 
-    void SetHp(float hp)
+    public void SetHp(float hp)
     {
         healthSlider.value =Mathf.RoundToInt(hp);
     }
